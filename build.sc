@@ -1,4 +1,4 @@
-import mill._, mill.scalalib._, mill.scalalib.publish._, mill.scalajslib._
+import mill._, mill.scalalib._, mill.scalalib.publish._, mill.scalajslib._, mill.scalanativelib._
 
 trait CommonModule extends ScalaModule {
 
@@ -81,6 +81,20 @@ object ujson extends Module{
     def platformSegment = "jvm"
 
     object test extends JawnTestModule
+  }
+
+  object native extends Cross[JsonNativeModule]("2.11.12")
+  class JsonNativeModule(val crossScalaVersion: String) extends JsonModule with ScalaNativeModule {
+    def scalaNativeVersion = "0.3.7"
+    def platformSegment = "jvm" // compile using the jvm sources
+
+    object test extends JawnTestModule with TestScalaNativeModule {
+      def scalaNativeVersion = "0.3.7"
+      def ivyDeps = Agg(
+        ivy"org.scalatest::scalatest::3.2.0-SNAP10",
+        ivy"org.scalacheck::scalacheck::1.14.0"
+      )
+    }
   }
 
   object argonaut extends Cross[ArgonautModule]("2.11.11", "2.12.4")
@@ -224,6 +238,19 @@ object upickle extends Module{
     }
     object test extends UpickleTestModule with TestScalaJSModule{
       def scalaJSVersion = "0.6.22"
+    }
+  }
+
+  object native extends Cross[UpickleNativeModule]("2.11.12")
+  class UpickleNativeModule(val crossScalaVersion: String) extends UpickleModule with ScalaNativeModule {
+    def moduleDeps = Seq(ujson.native())
+    def platformSegment = "jvm"
+
+    def scalaNativeVersion = "0.3.7"
+    object test extends UpickleTestModule with TestScalaNativeModule{
+      def scalaNativeVersion = "0.3.7"
+      // while we compile using the jvm sources, testing cannot use them as they use non-native parsers
+      def platformSegment = "native"
     }
   }
 }
